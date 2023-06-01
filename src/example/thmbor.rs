@@ -24,11 +24,19 @@
         rust
             使用protobuf定义传输的数据
 
+待优化的点
+    首先添加新的 proto，定义新的 spec
+    然后为 spec 实现 SpecTransform trait 和一些辅助函数
+    最后在 Engine 中使用 spec
 
+如果要换图片引擎呢？也很简单：
+    添加新的图片引擎，像 Photon 那样，实现 Engine trait 以及为每种 spec 实现 SpecTransform Trait。
+    在 main.rs 里使用新的引擎。
  */
 pub use super::abi::*;
 use axum::{extract::Path, handler::get, http::StatusCode, Router};
 use base64::{decode_config, encode_config, URL_SAFE_NO_PAD};
+use image::ImageOutputFormat;
 use percent_encoding::percent_decode_str;
 use photon_rs::transform::SamplingFilter;
 use prost::Message;
@@ -180,11 +188,17 @@ async fn generate(
     let data = retrieve_image(&url, cache)
         .await
         .map_err(|_| StatusCode::BAD_REQUEST)?;
-    // TODO:处理图片
+    // 使用image engine 处理
+    let mut engine: Photon = data
+        .try_into()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    engine.apply(&spec.specs);
 
+    let image = engine.generate(ImageOutputFormat::Jpeg(85));
+    info!("Finished processing: image size {}", image.len());
     let mut headers = HeaderMap::new();
     headers.insert("content-type", HeaderValue::from_static("image/jpeg"));
-    Ok((headers, data.to_vec()))
+    Ok((headers, image))
 }
 
 #[instrument(level = "info", skip(cache))]
@@ -225,8 +239,128 @@ use std::{
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tracing::{info, instrument};
-// -------------------获取源图并缓存
 type Cache = Arc<Mutex<LruCache<u64, Bytes>>>;
+// -------------------获取源图并缓存
+
+// -------------------图片处理
+// Engine trait：未来可以添加更多的 engine，主流程只需要替换 engine
+pub trait Engine {
+    // 对 engine 按照 specs 进行一系列有序的处理
+    fn apply(&mut self, specs: &[Spec]);
+    // 从 engine 中生成目标图片,注意这里用的是 self,而非self引用
+    fn generate(self, format: ImageOutputFormat) -> Vec<u8>;
+}
+
+// SpecTransform：未来如果添加更多的 spec，只需要实现它即可
+pub trait SpecTransform<T> {
+    // 对图片使用 op 做 transform
+    fn transform(&mut self, op: T);
+}
+use image::{DynamicImage, ImageBuffer};
+use lazy_static::lazy_static;
+use photon_rs::{
+    effects, filters, multiple, native::open_image_from_bytes, transform, PhotonImage,
+};
+lazy_static! { // 预先把水印文件加载为静态变量
+static ref WATERMARK: PhotonImage = { // 这里你需要把我 github 项目下的对应图片拷贝到你的根目录
+    // 在编译的时候 include_bytes! 宏会直接把文件读入编译后的二进制
+    let data = include_bytes!("rust-logo.png");
+    let watermark = open_image_from_bytes(data).unwrap();
+    transform::resize(&watermark, 64, 64, transform::SamplingFilter::Nearest) };
+}
+// 我们目前支持 Photon engine
+pub struct Photon(PhotonImage);
+// 从 Bytes 转换成 Photon 结构
+impl TryFrom<Bytes> for Photon {
+    type Error = anyhow::Error;
+    fn try_from(data: Bytes) -> Result<Self, Self::Error> {
+        Ok(Self(open_image_from_bytes(&data)?))
+    }
+}
+impl Engine for Photon {
+    fn apply(&mut self, specs: &[Spec]) {
+        for spec in specs.iter() {
+            match spec.data {
+                Some(spec::Data::Crop(ref v)) => self.transform(v),
+                Some(spec::Data::Contrast(ref v)) => self.transform(v),
+                Some(spec::Data::Filter(ref v)) => self.transform(v),
+                Some(spec::Data::Fliph(ref v)) => self.transform(v),
+                Some(spec::Data::Flipv(ref v)) => self.transform(v),
+                Some(spec::Data::Resize(ref v)) => self.transform(v),
+                Some(spec::Data::Watermark(ref v)) => self.transform(v), // 对于目前不认识的 spec，不做任何处理
+                _ => {}
+            }
+        }
+    }
+    fn generate(self, format: ImageOutputFormat) -> Vec<u8> {
+        image_to_buf(self.0, format)
+    }
+}
+
+impl SpecTransform<&Crop> for Photon {
+    fn transform(&mut self, op: &Crop) {
+        let img = transform::crop(&mut self.0, op.x1, op.y1, op.x2, op.y2);
+        self.0 = img;
+    }
+}
+impl SpecTransform<&Contrast> for Photon {
+    fn transform(&mut self, op: &Contrast) {
+        effects::adjust_contrast(&mut self.0, op.contrast);
+    }
+}
+impl SpecTransform<&Flipv> for Photon {
+    fn transform(&mut self, _op: &Flipv) {
+        transform::flipv(&mut self.0)
+    }
+}
+impl SpecTransform<&Fliph> for Photon {
+    fn transform(&mut self, _op: &Fliph) {
+        transform::fliph(&mut self.0)
+    }
+}
+impl SpecTransform<&Filter> for Photon {
+    fn transform(&mut self, op: &Filter) {
+        match filter::Filter::from_i32(op.filter) {
+            Some(filter::Filter::Unspecified) => {}
+            Some(f) => filters::filter(&mut self.0, f.to_str().unwrap()),
+            _ => {}
+        }
+    }
+}
+
+impl SpecTransform<&Resize> for Photon {
+    fn transform(&mut self, op: &Resize) {
+        let img = match resize::ResizeType::from_i32(op.rtype).unwrap() {
+            resize::ResizeType::Normal => transform::resize(
+                &mut self.0,
+                op.width,
+                op.height,
+                resize::SampleFilter::from_i32(op.filter).unwrap().into(),
+            ),
+            resize::ResizeType::SeamCarve => {
+                transform::seam_carve(&mut self.0, op.width, op.height)
+            }
+        };
+        self.0 = img;
+    }
+}
+impl SpecTransform<&Watermark> for Photon {
+    fn transform(&mut self, op: &Watermark) {
+        multiple::watermark(&mut self.0, &WATERMARK, op.x, op.y);
+    }
+}
+
+// photon 库竟然没有提供在内存中对图片转换格式的方法，只好手工实现
+fn image_to_buf(img: PhotonImage, format: ImageOutputFormat) -> Vec<u8> {
+    let raw_pixels = img.get_raw_pixels();
+    let width = img.get_width();
+    let height = img.get_height();
+    let img_buffer = ImageBuffer::from_vec(width, height, raw_pixels).unwrap();
+    let dynimage = DynamicImage::ImageRgba8(img_buffer);
+    let mut buffer = Vec::with_capacity(32768);
+    dynimage.write_to(&mut buffer, format).unwrap();
+    buffer
+}
 
 // 测试模块
 #[cfg(test)]
