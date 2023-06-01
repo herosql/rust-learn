@@ -24,19 +24,19 @@ fn not_pi() {
 /*
 html转mardown的示例
 */
-fn covertedMarkdown() {
-    let url = "http://www.rust-lang.org/";
-    let output = "rust.md";
+// fn covertedMarkdown() {
+//     let url = "http://www.rust-lang.org/";
+//     let output = "rust.md";
 
-    println!("Fetching url:{}", url);
-    let body = reqwest::blocking::get(url).unwrap().text().unwrap();
+//     println!("Fetching url:{}", url);
+//     let body = reqwest::blocking::get(url).unwrap().text().unwrap();
 
-    println!("Converting html to markdown...");
-    let md = html2md::parse_html(&body);
+//     println!("Converting html to markdown...");
+//     let md = html2md::parse_html(&body);
 
-    fs::write(output, md.as_bytes()).unwrap();
-    println!("Coverted markdown has been saved in {}", output);
-}
+//     fs::write(output, md.as_bytes()).unwrap();
+//     println!("Coverted markdown has been saved in {}", output);
+// }
 
 /*
 数据结构
@@ -94,7 +94,7 @@ fn fib_loop(n: u8) {
     }
 }
 
-fn fib_for(n: u8) {
+pub fn fib_for(n: u8) {
     let (mut a, mut b) = (1, 1);
     for _i in 2..n {
         let c = a + b;
@@ -131,26 +131,28 @@ fn process_event(event: &Event) {
 /*
 错误处理
 */
-fn covertedMarkdownError() -> Result<(), Box<dyn std::error::Error>> {
-    let url = "http://www.rust-lang.org/";
-    let output = "rust.md";
+// fn covertedMarkdownError() -> Result<(), Box<dyn std::error::Error>> {
+//     let url = "http://www.rust-lang.org/";
+//     let output = "rust.md";
 
-    println!("Fetching url:{}", url);
-    let body = reqwest::blocking::get(url)?.text()?;
+//     println!("Fetching url:{}", url);
+//     let body = reqwest::blocking::get(url)?.text()?;
 
-    println!("Converting html to markdown...");
-    let md = html2md::parse_html(&body);
+//     println!("Converting html to markdown...");
+//     let md = html2md::parse_html(&body);
 
-    fs::write(output, md.as_bytes())?;
-    println!("Coverted markdown has been saved in {}", output);
+//     fs::write(output, md.as_bytes())?;
+//     println!("Coverted markdown has been saved in {}", output);
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 /*
 通过mod来组织代码,mod.rs来声明导出的方式
 通过mod就可以用来导入文件夹中声明导出的代码
 */
+mod example;
+
 // 测试模块
 #[cfg(test)]
 mod tests {
