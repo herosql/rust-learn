@@ -165,6 +165,8 @@ async fn parse() -> Result<()> {
 // 测试模块
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     // 引入外部函数
     use super::*;
 
@@ -173,5 +175,6 @@ mod tests {
     fn test_opts() {
         // let opts: Opts = Opts::parse();
         // println!("{:?}", opts)
+        
     }
 }

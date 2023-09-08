@@ -151,6 +151,7 @@ fn process_event(event: &Event) {
 通过mod来组织代码,mod.rs来声明导出的方式
 通过mod就可以用来导入文件夹中声明导出的代码
 */
+mod base;
 mod example;
 
 // 测试模块

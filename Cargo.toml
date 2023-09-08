@@ -12,7 +12,7 @@ clap = { version = "3", features = ["derive"] } # 命令行解析
 colored = "2" # 命令终端多彩显示
 jsonxf = "1.1" # JSON pretty print 格式化
 mime = "0.3" # 处理 mime 类型
-reqwest = { version = "0.11", features = ["json"] } # HTTP 客户端
+reqwest = { version = "0.11", features = ["json","blocking"] } # HTTP 客户端
 tokio = { version = "1", features = ["full"] } # 异步处理库
 
 axum = "0.2" # web 服务器
@@ -29,6 +29,13 @@ tower = { version = "0.4", features = ["util", "timeout", "load-shed", "limit"] 
 tower-http = { version = "0.1", features = ["add-extension", "compression-full", "trace" ] } # http 中间件
 tracing = "0.1" # 日志和追踪
 tracing-subscriber = "0.2" # 日志和追踪
+async-trait = "0.1" # 允许 trait 里有 async fn
+sqlparser = "0.10" # SQL 解析器
+polars = { version = "0.15", features = ["json", "lazy"] } # DataFrame 库
 
 [build-dependencies]
 prost-build = "0.8" # 编译 protobuf
+
+[dev-dependencies]
+tracing-subscriber = "0.2" # 日志处理
+tokio = { version = "1", features = ["full"]} # 在 example 下我们需要更多的 tokio feature
