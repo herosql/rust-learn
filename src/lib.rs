@@ -21,22 +21,7 @@ fn pi() -> f64 {
 fn not_pi() {
     3.1415926;
 }
-/*
-html转mardown的示例
-*/
-// fn covertedMarkdown() {
-//     let url = "http://www.rust-lang.org/";
-//     let output = "rust.md";
 
-//     println!("Fetching url:{}", url);
-//     let body = reqwest::blocking::get(url).unwrap().text().unwrap();
-
-//     println!("Converting html to markdown...");
-//     let md = html2md::parse_html(&body);
-
-//     fs::write(output, md.as_bytes()).unwrap();
-//     println!("Coverted markdown has been saved in {}", output);
-// }
 
 /*
 数据结构
@@ -77,42 +62,42 @@ enum Event {
 /*
 控制流程
  */
-fn fib_loop(n: u8) {
+fn fib_loop(n: u8)-> i32 {
     let mut a = 1;
     let mut b = 1;
     let mut i = 2u8;
 
     loop {
-        let c = a + b;
-        a = b;
-        b = c;
+        change_value(&mut a, &mut b);
         i += 1;
-        println!("next val is {}", b);
         if i >= n {
             break;
         }
     }
+    return b;
 }
 
-pub fn fib_for(n: u8) {
+fn change_value(a: &mut i32, b: &mut i32) {
+    let c = *a + *b;
+    *a = *b;
+    *b = c;
+}
+
+pub fn fib_for(n: u8)-> i32 {
     let (mut a, mut b) = (1, 1);
     for _i in 2..n {
-        let c = a + b;
-        a = b;
-        b = c;
-        println!("next val is {}", b)
+        change_value(&mut a, &mut b);
     }
+    return b;
 }
 
-fn fib_while(n: u8) {
+fn fib_while(n: u8)-> i32 {
     let (mut a, mut b, mut i) = (1, 1, 2);
     while i < n {
-        let c = a + b;
-        a = b;
-        b = c;
+        change_value(&mut a, &mut b);
         i += 1;
-        println!("next val is {}", b)
     }
+    return b;
 }
 
 /*
@@ -131,21 +116,21 @@ fn process_event(event: &Event) {
 /*
 错误处理
 */
-// fn covertedMarkdownError() -> Result<(), Box<dyn std::error::Error>> {
-//     let url = "http://www.rust-lang.org/";
-//     let output = "rust.md";
+fn covertedMarkdownError(url:&str) -> Result<(),()> {
+    // let url = "http://www.rust-lang.org/";
+    let output = "rust.md";
 
-//     println!("Fetching url:{}", url);
-//     let body = reqwest::blocking::get(url)?.text()?;
+    println!("Fetching url:{}", url);
+    let body = reqwest::blocking::get(url).unwrap().text().unwrap();
 
-//     println!("Converting html to markdown...");
-//     let md = html2md::parse_html(&body);
+    println!("Converting html to markdown...");
+    let md = html2md::parse_html(&body);
 
-//     fs::write(output, md.as_bytes())?;
-//     println!("Coverted markdown has been saved in {}", output);
+    fs::write(output, md.as_bytes()).unwrap();
+    println!("Coverted markdown has been saved in {}", output);
 
-//     Ok(())
-// }
+    Ok(())
+}
 
 /*
 通过mod来组织代码,mod.rs来声明导出的方式
@@ -210,9 +195,9 @@ mod tests {
     #[test]
     fn test_fib_loop() {
         let n = 10;
-        fib_for(n);
-        fib_while(n);
-        fib_for(n);
+        assert_eq!(fib_for(n),55);
+        assert_eq!(fib_while(n),55);
+        assert_eq!(fib_loop(n),55);
     }
 
     #[test]
