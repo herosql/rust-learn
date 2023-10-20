@@ -1,4 +1,6 @@
 pub mod abi;
+mod guess_game;
 mod http_pie;
-mod sql_to_csv;
+pub mod sql_to_csv;
 mod thmbor;
+pub mod web;

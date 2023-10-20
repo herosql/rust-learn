@@ -22,7 +22,6 @@ fn not_pi() {
     3.1415926;
 }
 
-
 /*
 数据结构
  */
@@ -62,7 +61,7 @@ enum Event {
 /*
 控制流程
  */
-fn fib_loop(n: u8)-> i32 {
+fn fib_loop(n: u8) -> i32 {
     let mut a = 1;
     let mut b = 1;
     let mut i = 2u8;
@@ -83,7 +82,7 @@ fn change_value(a: &mut i32, b: &mut i32) {
     *b = c;
 }
 
-pub fn fib_for(n: u8)-> i32 {
+pub fn fib_for(n: u8) -> i32 {
     let (mut a, mut b) = (1, 1);
     for _i in 2..n {
         change_value(&mut a, &mut b);
@@ -91,7 +90,7 @@ pub fn fib_for(n: u8)-> i32 {
     return b;
 }
 
-fn fib_while(n: u8)-> i32 {
+fn fib_while(n: u8) -> i32 {
     let (mut a, mut b, mut i) = (1, 1, 2);
     while i < n {
         change_value(&mut a, &mut b);
@@ -116,7 +115,7 @@ fn process_event(event: &Event) {
 /*
 错误处理
 */
-fn covertedMarkdownError(url:&str) -> Result<(),()> {
+fn covertedMarkdownError(url: &str) -> Result<(), ()> {
     // let url = "http://www.rust-lang.org/";
     let output = "rust.md";
 
@@ -136,8 +135,8 @@ fn covertedMarkdownError(url:&str) -> Result<(),()> {
 通过mod来组织代码,mod.rs来声明导出的方式
 通过mod就可以用来导入文件夹中声明导出的代码
 */
-mod base;
-mod example;
+pub mod base;
+pub mod example;
 
 // 测试模块
 #[cfg(test)]
@@ -195,9 +194,9 @@ mod tests {
     #[test]
     fn test_fib_loop() {
         let n = 10;
-        assert_eq!(fib_for(n),55);
-        assert_eq!(fib_while(n),55);
-        assert_eq!(fib_loop(n),55);
+        assert_eq!(fib_for(n), 55);
+        assert_eq!(fib_while(n), 55);
+        assert_eq!(fib_loop(n), 55);
     }
 
     #[test]
